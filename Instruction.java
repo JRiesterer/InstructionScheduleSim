@@ -1,26 +1,21 @@
 public class Instruction {
-    // instruction properties
     public enum State { IF, ID, IS, EX, WB };
     private static int globalCounter = 0;
     private State state;
     private String PC;
-    private int tag; // assign increasing nums for order of instrs. ex: 0, 1, 2 ...
-    private int optype; // "0" =  1 cycle latency, "1" = 2, "2" = 5
-    private int dest; // 0 to 127 - need to check? 128 registers
+    private int tag;
+    private int optype;
+    private int dest;
     private int src1;
     private int src2;
     private int origsrc1;
     private int origsrc2;
-    private int remainingCycles; // derived from optype - latency
-
-    //check values
+    private int remainingCycles;
     private boolean src1Ready = false;
     private boolean src2Ready = false;
     private boolean isSrc1Tagged;
     private boolean isSrc2Tagged;
 
-    // input: 2b6420 0 -1 29 14
-    // output: 0 fu{0} src{29,14} dst{-1} IF{0,1} ID{1,1} IS{2,1} EX{3,1} WB{4,1}
     private int IFCycle;
     private int IFTime;
     private int IDCycle;
@@ -37,7 +32,7 @@ public class Instruction {
         this.tag = globalCounter++;
         this.PC = PC;
         this.optype = optype;
-        this.dest = dest; // if -1, then null
+        this.dest = dest;
         this.src1 = src1;
         this.src2 = src2;
         this.origsrc1 = src1;
@@ -57,7 +52,19 @@ public class Instruction {
         this.WBTime = 0;
     }
 
-    // getters
+    // --- NEW METHOD FOR WATTAGE ---
+    public int getWattage() {
+        // Adjust these as needed
+        return switch (optype) {
+            case 0 -> 1;  // Wattage for op code 0
+            case 1 -> 2;  // Wattage for op code 1
+            case 2 -> 4;  // Wattage for op code 2
+            default -> 0; // fallback, though we only have 0-2
+        };
+    }
+
+    // You already have getOpType(), etc. Shown here for clarity.
+    public int getOpType() { return optype; }
     public String getPC() { return PC; }
     public int getTag() { return tag; }
     public State getState() { return state; }
@@ -67,7 +74,6 @@ public class Instruction {
     public int getSrc2() { return src2; }
     public int getOrigSrc1() { return origsrc1; }
     public int getOrigSrc2() { return origsrc2; }
-    public int getOpType() { return optype;}
     public boolean getIsSrc1Tagged() { return isSrc1Tagged; }
     public boolean getIsSrc2Tagged() { return isSrc2Tagged; }
     public int getIFCycle() { return IFCycle; }
@@ -80,6 +86,7 @@ public class Instruction {
     public int getEXTime() { return EXTime; }
     public int getWBCycle() { return WBCycle; }
     public int getWBTime() { return WBTime; }
+
     private int getLatency() {
         return switch (optype) {
             case 0 -> 1;
@@ -89,20 +96,16 @@ public class Instruction {
         };
     }
 
-    // setters
-    public void setTag(int tag) { this.tag = tag; }
     public void setState(State state) { this.state = state; }
-    public void setDest(int dest) { this.dest = dest; }
     public void setSrc1(int src1) { this.src1 = src1; }
     public void setSrc2(int src2) { this.src2 = src2; }
     public void setSrc1Ready() { src1Ready = true; }
     public void setSrc2Ready() { src2Ready = true; }
-    public void setSrc1NotReady() {src1Ready = false;}
-    public void setSrc2NotReady() {src2Ready = false;}
+    public void setSrc1NotReady() { src1Ready = false; }
+    public void setSrc2NotReady() { src2Ready = false; }
     public void setIsSrc1Tagged(boolean bool) { isSrc1Tagged = bool; }
     public void setIsSrc2Tagged(boolean bool) { isSrc2Tagged = bool; }
 
-    // update cycle nums and durations
     public void updateTiming(int cycle) {
         switch (state) {
             case IF:
@@ -130,24 +133,25 @@ public class Instruction {
         }
     }
 
-    // decrement cycle
-    public void decrementCycle() { remainingCycles--; }  
+    public void decrementCycle() {
+        remainingCycles--;
+    }
 
-    // checks
-    public boolean isExecutionComplete() { return remainingCycles == 0; }
-    public boolean isReady(){
-        return (src1 == -1 || (src1 != -1 && src1Ready)) && (src2 == -1 || (src2 != -1 && src2Ready));
-    }  
+    public boolean isExecutionComplete() {
+        return remainingCycles == 0;
+    }
 
-    // advance instruction state
+    public boolean isReady() {
+        return (src1 == -1 || src1Ready) && (src2 == -1 || src2Ready);
+    }
+
     public void advanceState() {
         switch (state) {
             case IF -> state = State.ID;
             case ID -> state = State.IS;
             case IS -> state = State.EX;
             case EX -> state = State.WB;
-            case WB -> {} // Do nothing - final state
+            case WB -> {}
         }
     }
-
 }
